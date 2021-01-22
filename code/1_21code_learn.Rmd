@@ -1,11 +1,13 @@
 ---
 title: "Cross Validation"
 author: "Philip Waggoner, MACS 30100 <br /> University of Chicago"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+#knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 ```
 
 # Resampling
@@ -37,7 +39,7 @@ auto_lm <- glm(mpg ~ horsepower, data = auto_train); summary(auto_lm)
 MSE for training
 
 ```{r}
-(train_mse <- augment(auto_lm, newdata = auto_train) %>%
+(train_mse <- augment(auto_lm, newdata = auto_train) %>% #augment = predict 
   mse(truth = mpg, estimate = .fitted))
 ```
 
@@ -389,43 +391,63 @@ titanic <- as_tibble(titanic_train) %>%
 
     - Build the classifer on the training set(s) across folds
     - Evaluate each classifer using the test set(s) across folds
+
 ```{r}
 set.seed(1234)
-titanic_cv10 <- vfold_cv(data = titanic, v = 10)
-titanic_cv10 %>%
-  names()
-titanic_cv10
-titanic_cv10$splits[[1]]
+auto_cv10 <- vfold_cv(data = titanic, 
+                      v = 10)
+auto_cv10
+auto_cv10$splits[[1]]
 
 holdout_results <- function(splits) {
   mod <- glm(Survived ~ Age * Sex, data = analysis(splits),
-    family = binomial)
-  holdout <- assessment(splits)
-  res <- augment(mod, newdata = holdout) %>%
-    # Following two lines are important
+             family = binomial)
+  res <- augment(mod, newdata = assessment(splits)) %>% 
     as_tibble() %>%
     mutate(.prob = logit2prob(.fitted),
-        .pred = round(.prob))
+           .pred = round(.prob))
   res
 }
 
-titanic_cv10 <- titanic_cv10 %>%
-  mutate(results = map(splits,holdout_results)) %>%
+titanic_auto_cv10 <- auto_cv10 %>%
+  mutate(results = map(splits, holdout_results)) %>%
   unnest(results) %>%
   mutate(.pred = factor(.pred)) %>%
   group_by(id) %>%
   accuracy(truth = Survived, estimate = .pred)
-titanic_cv10
 
+titanic_auto_cv10
 ```
 
-2. Calculate the cross-validation *error rate* (not the accuracy rate) from your solution and report it. 
-
-
+2. Calculate the cross-validation *error rate* (not the accuracy rate) from your solution and report it.
 ```{r}
-1 - mean(titanic_cv10$.estimate, na.rm = TRUE)
+holdout_results <- function(splits) {
+  mod <- glm(Survived ~ Age * Sex, data = analysis(splits),
+             family = binomial)
+  res <- augment(mod, newdata = assessment(splits)) %>% 
+    as_tibble() %>%
+    mutate(.prob = logit2prob(.fitted),
+           .pred = round(.prob))
+  res
+}
+
+titanic_auto_cv10 <- auto_cv10 %>% 
+  mutate(results = map(splits, holdout_results)) %>% 
+  unnest(results) %>% 
+  mutate(.pred=factor(.pred)) %>% 
+  group_by(id) %>%
+  accuracy(truth = Survived, estimate = .pred)
+
+titanic_auto_cv10 %>% 
+  head(n=5)
+
+1 - mean(titanic_auto_cv10$.estimate, na.rm = TRUE)
 ```
 
 3. Is this similar to the error from using LOOCV earlier in the session? Why or why not, do you think? (offer just a couple thoughts on the patterns -- differences and similarities in error, computational speed, etc. -- from each approach to resampling in this classification setting).
 
-The error rate of LOOCV is 0.219888 and the error rate of 10-fold cross-validation is 0.2194149. They are quite closed. But the error rate of LOOCV is slightly larger. The LOOCV is computationally expensive (need to do n times regression while 10-fold cross validation only need 10 times). 
+The two values are quite close. But, The error rate obtained from the 10-fold cross validation is lower than that of the LOOCV cross validation. 
+
+Using the 10-fold cross validation, the variance would be decreased though there is a relatively smaller increase in the bias. As a result, the overall effect is that the error rate in the 10-fold cross validation would be decreased.
+
+The LOOCV method is computationally expensive as the model has to be ﬁtted n times. However, the 10-fold cross validation performs better in this respect.

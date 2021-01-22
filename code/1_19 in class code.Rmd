@@ -281,6 +281,31 @@ anes <- read_csv(here("data", "anes_2016.csv"))
 
 With the data loaded, answer the following questions. The objective here is twofold: 1) to practice your statistical computing skills, and 2) apply and explore error from fitting models on different sets of data.
 
+---
+title: "1.19code"
+author: "Jinfei Zhu"
+date: "2021/1/19"
+output: pdf_document
+---
+# On your own
+
+For this section, you will work in small groups of 4-5. *I will create these groups at random*. 
+
+**IMPORTANT**: _Don't forget that this code you're working on here is due at the appropriate Canvas module (in the form of an attachment to a "Discussion" post) prior to 5:00 pm CDT today. You need only submit a **single** file/script to be considered for credit (i.e., this .Rmd with your code inserted below each question). Recall, I don't care whether you got things right. I only care that attempts to each question have been made._ 
+
+We will now walk through some of the techniques covered this week and last, but this time using real data. Specifically, for this set of exercises, you will use the 2016 American National Election Pilot Study (ANES). Load the data:
+
+```{r}
+library(tidyverse)
+library(here)
+# setwd("D:\\UChicago-2021-Winter\\perspectives-on-computational-modeling\\github-code\\Data-and-Code")
+# anes <- read.csv("anes_2016.csv")
+anes <- read.csv(here("data", "anes_2016.csv"))
+```
+anes <- read.csv(here("data", "anes_2016.csv"))
+
+With the data loaded, answer the following questions. The objective here is twofold: 1) to practice your statistical computing skills, and 2) apply and explore error from fitting models on different sets of data.
+
 1. Using some of the techniques we covered last week:
 
     a. Select only the Obama feeling thermometer (`ftobama`), household income (`faminc`), party affiliation on a 3 point scale (`pid3`), birth year (`birthyr`), and gender (`gender`) (*be sure to recode missing values to `NA` and omit these*)
@@ -288,22 +313,85 @@ With the data loaded, answer the following questions. The objective here is twof
     b. Split the subset data into training (75%) and testing (25%) sets (*hint*: remember to set the seed (`set.seed()`) prior to creating the split, as the proportions are generated at random)
   
     c. Plot the distributions of each against each other to ensure they look similar
+```{r echo = TRUE, eval = TRUE}
+library(ggplot2)
+library(dplyr)
+library(tidymodels)
+# 1a
+anes_clean <- anes %>%
+  select(ftobama,faminc,pid3,birthyr,gender) %>%
+  na.omit()
+anes_clean
+
+# 1b
+set.seed(1234)
+split_anes <- initial_split(anes_clean,
+                            prop = 0.75)
+train_anes <- training(split_anes)
+test_anes  <- testing(split_anes)
+
+par(mfrow=c(2,3))
+# 1c
+ hist(anes_clean$ftobama) 
+ hist(anes_clean$faminc) 
+ hist(anes_clean$pid3) 
+ hist(anes_clean$birthyr) 
+ hist(anes_clean$gender) 
 
 
-2. Fit a linear regression (`lm()`) on the *training* data, predicting trump approval as a function of all other features.
+```
+
+
+2. Fit a linear regression (`lm()`) on the *training* data, predicting obama approval ('ftobama') as a function of all other features.
+```{r echo = TRUE, eval = TRUE}
+# create
+train_anes
+model <- lm(ftobama ~ faminc + pid3 + birthyr + gender, data = train_anes)
+summary(model)
+```
 
 
 3. Calculate the training mean squared error (*hint*: consider using the `mse()` function from Dr. Soltoff's `rcfss` package, which is at the uc-cfss github, *not* on CRAN).
+```{r}
+# install.packages(('devtools'))
+library(devtools)
+# install_github('uc-cfss/rcfss')
+# ?mse
+library(rcfss)
+obama_hat <- predict(model, train_anes)
+train_mse <- rcfss::mse(data=train_anes, ftobama, obama_hat)
+train_mse
 
+```
 
 4. Calculate predictions for the testing set, using the model you built on the training set (*hint*: consider either `predict()` from base R, or `augment()` from `broom`).
+```{r}
+obama_test <- predict(model, test_anes, interval="confidence")
+```
 
 
 5. Calculate the testing mean squared error.
-
+```{r}
+obama_hat_test <- predict(model, test_anes)
+test_mse <- rcfss::mse(test_anes, ftobama, obama_hat_test)
+test_mse
+```
 
 6. Compare the mean squared error from both sets numerically, side-by-side. What do you see? *Discuss in your groups and record a few sentences as a response.*
+```{r}
+test_mse$.estimate
+train_mse$.estimate
+```
 
 
 7. Write your own function to calculate the MSE. Then, use it to re-answer questions 3 and 5. Present the results here, and compare with the `rcfss` approach via `mse()`. These results should be identical to the `mse()` version. Are they? If not, *why* do you think? (*just a sentence or two on your general thoughts if they differ*) 
+```{r}
 
+mse <- function(true, estimate){
+  1/length(true)*(sum((true - estimate)^2))
+}
+
+mse(test_anes$ftobama, predict(model,test_anes))
+mse(train_anes$ftobama, predict(model,train_anes))
+```
+Good news! They are exactly the same!
