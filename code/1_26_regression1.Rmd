@@ -303,9 +303,8 @@ biden <- biden %>%
 
 p <- ggplot(biden, aes(x = age, y = biden)) +
   geom_point()
-p + stat_smooth(method = 'lm', formula = biden ~ poly(age,4), size = 1) + theme_minimal()
+p + stat_smooth(method = 'lm', formula = y ~ poly(x = x, 4), size = 1) + theme_minimal()
 # reference: https://stats.idre.ucla.edu/r/faq/how-can-i-explore-different-smooths-in-ggplot2/
-# don't know why got error message: Computation failed in `stat_smooth()`: object 'age' not found
 
 ```
 
@@ -319,17 +318,17 @@ tibble(biden_lm_poly$coefficients, sqrt(diag(var_matrix)))
 ```
     * Calculate (by hand/don't call values from `broom::tidy()`) and report the t-statistics for each of parameter from your polynomial regression (*to answer this, make sure you read the question carefully*).
 ```{r}
-t_statistics <- biden_lm_poly$coefficients / sqrt(diag(var_matrix))
-tibble(t_statistics)
+t_statistic <- biden_lm_poly$coefficients / sqrt(diag(var_matrix))
+tibble(t_statistic)
 ```
     
     * Which coefficient estimates are significant at the 95% level, and which are not? *Hint:* you might consider *comparing* your manually-calculated estimates with those obtained via `broom::tidy()` as a quality check to make sure you followed the steps correctly. What does this substantively mean (a single sentence/thought will do)?
     
     
 ```{r}
-tibble(tidy(biden_lm_poly)['statistic'], t_statistics)
+tibble(tidy(biden_lm_poly)['statistic'], t_statistic)
 ```
-
+The t-statistic I calculated are exactly the same with the out put of tidy() function. On
 
 # Appendix: Some extra code for the interested user
 
