@@ -49,7 +49,8 @@ library(class) # for knn()
 library(MASS) # for lda() and qda()
 
 # read in court data
-data <- read.dta(here("data", "Court.dta")) %>% 
+
+data <- read.dta("D:\\UChicago-2021-Winter\\perspectives-on-computational-modeling\\Data-and-Code\\data\\Court.dta") %>% 
   as_tibble() %>% 
   mutate(liberal = round(liberal * 100, 2))
 
