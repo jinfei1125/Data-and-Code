@@ -24,6 +24,9 @@ ames_split <- initial_split(AmesHousing::make_ames(), prop = .7)
 ames_train <- training(ames_split)
 ames_test  <- testing(ames_split)
 
+
+# By default, randomForest() uses p/3 features when building a random forest of regression trees, and $\sqrt{p} features when building a random forest of classification trees; and ntree = 500
+
 # A default RF model
 
 m1 <- randomForest(
@@ -164,6 +167,8 @@ pred_ranger <- function(model, newdata){
   return(results$prediction)
 }
 
+# interpretable machine learning package
+# has been updating really soon--great machine learning model
 library(iml)
 
 predictor_rf <- Predictor$new(
@@ -180,6 +185,7 @@ predictor_rf <- Predictor$new(
 feat_imp_rf <- FeatureImp$new(predictor_rf, loss = "mse")
 
 # now viz
+# plot function is from iml so we are able to add ggplot sytax
 plot(feat_imp_rf) +
   ggtitle("Random forest")
 
@@ -246,19 +252,24 @@ training_set_mse <- rep(NA, length(lambda_range))
 test_set_mse <- rep(NA, length(lambda_range))
 
 # loop over lambda 
+# lmi: lambda over i
 for(lmi in 1:length(lambda_range)){
   lm <- lambda_range[lmi]
-  
+  # gbm: generalized boosting model
+  # distribution is gaussian because it's regression
+  # if it's classification, the distribution parameter is 'bonomial'
   boost2_ANES <- gbm(biden ~ ., data = ANES[train, ], 
                      distribution = "gaussian", 
                      n.trees = 1000, 
                      shrinkage = lm)
   
   # training error
+  # this predict is from ilm model, instead of base r
   y_hat <- predict(boost2_ANES, 
                    newdata = ANES[train, ], 
                    n.trees = 1000)
   
+  # manually calculated mse
   training_set_mse[lmi] <- mean((y_hat - ANES[train, ]$biden)^2)
   
   # testing error
@@ -270,6 +281,8 @@ for(lmi in 1:length(lambda_range)){
 }
 
 # viz both curves
+# base r plot syntax here
+# curly bracket: run the whole chunk symultaneously
 {
   plot(lambda_range, training_set_mse, 
      type = 'l', 
@@ -482,3 +495,4 @@ xgb_plots + plot_annotation(
   title = 'Feature Impacts on Feelings toward Biden',
   caption = 'Predictions on test set from tuned XGBoost regression.'
 )
+
